@@ -1,0 +1,3410 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "DSD Message service handler API",
+    "description": "This is a pilot project for  implementing ISA2 messaging REST API",
+    "termsOfService": "https://www.eupl.eu/",
+    "contact": {
+      "name": "Test user"
+    },
+    "license": {
+      "name": "EUPL 1.2",
+      "url": "https://www.eupl.eu/"
+    },
+    "version": "v1.0",
+    "summary": "DSD messaging rest service",
+    "x-edel-lifecycle": {
+      "maturity": "development"
+    },
+    "x-edel-publisher": {
+      "name": "European Commission",
+      "url": "https://joinup.ec.europa.eu/collection/api4dt"
+    }
+  },
+  "externalDocs": {
+    "description": "ISA² IPS REST API Core Profile - OpenAPI Document Specification",
+    "url": "https://ec.europa.eu/cefdigital/wiki/pages/viewpage.action?pageId=254313406"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080/dsd-mock",
+      "description": "Test server!"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Response Message Reference List",
+      "description": "This endpoints returns a list of response message references available for pulling"
+    },
+    {
+      "name": "Response Message Submission",
+      "description": "The endpoints defined in this section enable pushing or signalling the availability of responses to initial messages to a Sever or Webhook Server."
+    },
+    {
+      "name": "Pull Response Message",
+      "description": "This endpoint returns a response message for given service action and message identifier"
+    },
+    {
+      "name": "Message Submission",
+      "description": "The Message Submission endpoints are providing the endpoint to which a client sends the message"
+    },
+    {
+      "name": "Pull Message",
+      "description": "This endpoint returns a message for given service action and message identifier"
+    },
+    {
+      "name": "Message Reference List",
+      "description": "This endpoints returns a list of message references available for pulling"
+    }
+  ],
+  "paths": {
+    "/v1/messaging/{Service}/{Action}/{messageId}": {
+      "get": {
+        "tags": [
+          "Pull Message"
+        ],
+        "summary": "Get Message Endpoint",
+        "description": "This endpoint returns the message filed under a specific service and actionfollowing the format for the User Message. ",
+        "operationId": "GetMessageId",
+        "parameters": [
+          {
+            "name": "messageId",
+            "in": "path",
+            "description": "The MessageId is the unique identifier of the message submitted. It MUST be defined by the client. It is used for reliable messaging for guaranteeing the at-most-once message submission (no duplicate message-ids are allowed by the server implementing the API).",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "dde12f67-c391-4851-8fa2-c07dd8532efd"
+          },
+          {
+            "name": "Service",
+            "in": "path",
+            "description": "The Service metadata defines the service under which the message should be sent. It is combined with the Action metadata to provide a complete domain-level message target. The service metadata MUST be a URL Safe string.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "dsd-service"
+          },
+          {
+            "name": "Action",
+            "in": "path",
+            "description": "The Action metadata defines the action of the service under which the message should be sent. It is combined with the Service metadata to provide a complete domain-level target of the message. The action metadata MUST be a URL Safe string.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "dsd-action"
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Multipart response",
+            "headers": {
+              "Original-Sender": {
+                "$ref": "#/components/headers/Original-Sender"
+              },
+              "Final-Recipient": {
+                "$ref": "#/components/headers/Final-Recipient"
+              },
+              "Timestamp": {
+                "$ref": "#/components/headers/Timestamp"
+              },
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "multipart/mixed": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayloadBody"
+                },
+                "encoding": {
+                  "*": {
+                    "headers": {
+                      "Edel-Payload-Sig": {
+                        "$ref": "#/components/headers/Edel-Payload-Sig"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The server cannot or will not process the request due to an apparent client error (e.g., malformed request syntax, size too large, invalid request message framing, or deceptive request routing)",
+            "headers": {
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                },
+                "examples": {
+                  "ValidationFailed": {
+                    "value": {
+                      "title": "Validation Failed",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/message-validation-failed",
+                      "status": 400,
+                      "detail": "Sent when the message fails the validation process"
+                    }
+                  },
+                  "InvalidMessageId": {
+                    "value": {
+                      "title": "Invalid or Duplicate Message ID",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-message-id",
+                      "status": 400,
+                      "detail": "Sent when the MessageId is not valid"
+                    }
+                  },
+                  "InvalidSignature": {
+                    "value": {
+                      "title": "Invalid Message Signature",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-message-signature",
+                      "status": 400,
+                      "detail": "Sent when the message signature cannot be verified"
+                    }
+                  },
+                  "InvalidAddressing": {
+                    "value": {
+                      "title": "Invalid Addressing",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-addressing",
+                      "status": 400,
+                      "detail": "Sent when the Original Sender or Final Recipient(s) cannot be resolved"
+                    }
+                  },
+                  "InvalidMessageFormat": {
+                    "value": {
+                      "title": "Invalid Message Format",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-format",
+                      "status": 400,
+                      "detail": "Sent when the message format does not adhere to the specification"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Message Submission"
+        ],
+        "summary": "Asynchronous Message Submission Endpoint",
+        "description": "The Message submission endpoint is the main endpoint of the messaging API. It provides the endpoint to which a client sends the message, as created by the original sender.",
+        "operationId": "AsynchronousMessageSubmission",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Original-Sender"
+          },
+          {
+            "$ref": "#/components/parameters/Final-Recipient"
+          },
+          {
+            "$ref": "#/components/parameters/Timestamp"
+          },
+          {
+            "$ref": "#/components/parameters/Edel-Message-Sig"
+          },
+          {
+            "name": "messageId",
+            "in": "path",
+            "description": "The MessageId is the unique identifier of the message submitted. It MUST be defined by the client. It is used for reliable messaging for guaranteeing the at-most-once message submission (no duplicate message-ids are allowed by the server implementing the API).",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "dde12f67-c391-4851-8fa2-c07dd8532efd"
+          },
+          {
+            "name": "Service",
+            "in": "path",
+            "description": "The Service metadata defines the service under which the message should be sent. It is combined with the Action metadata to provide a complete domain-level message target. The service metadata MUST be a URL Safe string.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "dsd-service"
+          },
+          {
+            "name": "Action",
+            "in": "path",
+            "description": "The Action metadata defines the action of the service under which the message should be sent. It is combined with the Service metadata to provide a complete domain-level target of the message. The action metadata MUST be a URL Safe string.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "dsd-action"
+          },
+          {
+            "$ref": "#/components/parameters/Signal-Webhook"
+          },
+          {
+            "$ref": "#/components/parameters/Response-Webhook"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/mixed": {
+              "schema": {
+                "$ref": "#/components/schemas/PayloadBody"
+              },
+              "encoding": {
+                "*": {
+                  "headers": {
+                    "Edel-Payload-Sig": {
+                      "$ref": "#/components/headers/Edel-Payload-Sig"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Sent when the message is properly validated and received.",
+            "headers": {
+              "Original-Sender": {
+                "$ref": "#/components/headers/Original-Sender"
+              },
+              "Final-Recipient": {
+                "$ref": "#/components/headers/Final-Recipient"
+              },
+              "Timestamp": {
+                "$ref": "#/components/headers/Timestamp"
+              },
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignalMessage"
+                },
+                "example": {
+                  "title": "Message Accepted",
+                  "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/message-accepted",
+                  "status": 202,
+                  "detail": "Sent when the message is properly validated. It may include a status monitor that can provide the user with an estimate of when the request will be fulfilled (see [RFC7231])",
+                  "instance": "/my-service/my-action/dde12f67-c391-4851-8fa2-c07dd8532efd",
+                  "digest": "sha-256=eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The server cannot or will not process the request due to an apparent client error (e.g., malformed request syntax, size too large, invalid request message framing, or deceptive request routing)",
+            "headers": {
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                },
+                "examples": {
+                  "ValidationFailed": {
+                    "value": {
+                      "title": "Validation Failed",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/message-validation-failed",
+                      "status": 400,
+                      "detail": "Sent when the message fails the validation process"
+                    }
+                  },
+                  "InvalidMessageId": {
+                    "value": {
+                      "title": "Invalid or Duplicate Message ID",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-message-id",
+                      "status": 400,
+                      "detail": "Sent when the MessageId is not valid"
+                    }
+                  },
+                  "InvalidSignature": {
+                    "value": {
+                      "title": "Invalid Message Signature",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-message-signature",
+                      "status": 400,
+                      "detail": "Sent when the message signature cannot be verified"
+                    }
+                  },
+                  "InvalidAddressing": {
+                    "value": {
+                      "title": "Invalid Addressing",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-addressing",
+                      "status": 400,
+                      "detail": "Sent when the Original Sender or Final Recipient(s) cannot be resolved"
+                    }
+                  },
+                  "InvalidMessageFormat": {
+                    "value": {
+                      "title": "Invalid Message Format",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-format",
+                      "status": 400,
+                      "detail": "Sent when the message format does not adhere to the specification"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/messaging": {
+      "get": {
+        "tags": [
+          "Message Reference List"
+        ],
+        "summary": "Get Message Reference List Endpoint",
+        "description": "This endpoint returns a list of message references available for pulling, following the Message Reference schema. ",
+        "operationId": "GetMessageReferenceListId",
+        "responses": {
+          "202": {
+            "description": "Sent when the message is properly validated and received.",
+            "headers": {
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageReferenceList"
+                },
+                "example": {
+                  "messageReferenceList": [
+                    {
+                      "messageId": "0479eb12-a78d-4d28-8ed2-0711f615e25e",
+                      "service": "my-service",
+                      "action": "my-action",
+                      "href": "/my-service/my-action/0479eb12-a78d-4d28-8ed2-0711f615e25e"
+                    },
+                    {
+                      "messageId": "966d86f0-5e76-4f63-8e5e-00140f1e8a10",
+                      "service": "my-service",
+                      "action": "my-action",
+                      "href": "/my-service/my-action/966d86f0-5e76-4f63-8e5e-00140f1e8a10"
+                    }
+                  ],
+                  "limit": -1,
+                  "offset": 0
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The server cannot or will not process the request due to an apparent client error (e.g., malformed request syntax, size too large, invalid request message framing, or deceptive request routing)",
+            "headers": {
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                },
+                "examples": {
+                  "ValidationFailed": {
+                    "value": {
+                      "title": "Validation Failed",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/message-validation-failed",
+                      "status": 400,
+                      "detail": "Sent when the message fails the validation process"
+                    }
+                  },
+                  "InvalidMessageId": {
+                    "value": {
+                      "title": "Invalid or Duplicate Message ID",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-message-id",
+                      "status": 400,
+                      "detail": "Sent when the MessageId is not valid"
+                    }
+                  },
+                  "InvalidSignature": {
+                    "value": {
+                      "title": "Invalid Message Signature",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-message-signature",
+                      "status": 400,
+                      "detail": "Sent when the message signature cannot be verified"
+                    }
+                  },
+                  "InvalidAddressing": {
+                    "value": {
+                      "title": "Invalid Addressing",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-addressing",
+                      "status": 400,
+                      "detail": "Sent when the Original Sender or Final Recipient(s) cannot be resolved"
+                    }
+                  },
+                  "InvalidMessageFormat": {
+                    "value": {
+                      "title": "Invalid Message Format",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-format",
+                      "status": 400,
+                      "detail": "Sent when the message format does not adhere to the specification"
+                    }
+                  },
+                  "NoRecipient": {
+                    "value": {
+                      "title": "No final recipient configured for the pulling user",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/pull/no-final-recipient",
+                      "status": 400,
+                      "detail": "Sent when the server cannot resolve/match the pulling user to a final recipient"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Similar to 403 Forbidden, but specifically for use when authentication is required and has failed or has not yet been provided. ",
+            "headers": {
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                },
+                "examples": {
+                  "Unauthorized": {
+                    "value": {
+                      "title": "Unauthorized",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/pull/unauthorized",
+                      "status": 401,
+                      "detail": "Sent when the pull request is unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested resource could not be found but may be available in the future. Subsequent requests by the client are permissible.",
+            "headers": {
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                },
+                "examples": {
+                  "NoMessage": {
+                    "value": {
+                      "title": "No Message Found",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/pull/no-message-found",
+                      "status": 404,
+                      "detail": "Sent when no message is found that maps to the pull request"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/messaging/{Service}/{Action}/{messageId}/response/{rService}/{rAction}/{rMessageId}": {
+      "get": {
+        "tags": [
+          "Pull Response Message"
+        ],
+        "summary": "Get Response Message Endpoint",
+        "description": "This endpoint returns the message filed under a specific service and action, following the format defined in the User Message section, representing a response to a previous message sent by the original sender.",
+        "operationId": "GetResponseMessageId",
+        "parameters": [
+          {
+            "name": "messageId",
+            "in": "path",
+            "description": "The MessageId is the unique identifier of the message submitted. It MUST be defined by the client. It is used for reliable messaging for guaranteeing the at-most-once message submission (no duplicate message-ids are allowed by the server implementing the API).",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "dde12f67-c391-4851-8fa2-c07dd8532efd"
+          },
+          {
+            "name": "rMessageId",
+            "in": "path",
+            "description": "The identifier of the response message being submitted. It MUST be generated by the client submitting the response message.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Service",
+            "in": "path",
+            "description": "The Service metadata defines the service under which the message should be sent. It is combined with the Action metadata to provide a complete domain-level message target. The service metadata MUST be a URL Safe string.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "dsd-service"
+          },
+          {
+            "name": "Action",
+            "in": "path",
+            "description": "The Action metadata defines the action of the service under which the message should be sent. It is combined with the Service metadata to provide a complete domain-level target of the message. The action metadata MUST be a URL Safe string.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "dsd-action"
+          },
+          {
+            "name": "rService",
+            "in": "path",
+            "description": "The Service metadata defines the service under which the message should be sent. It is combined with the Action metadata to provide a complete domain-level message target. The service metadata MUST be a URL Safe string.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "rAction",
+            "in": "path",
+            "description": "The Action metadata defines the action of the service under which the message should be sent. It is combined with the Service metadata to provide a complete domain-level target of the message. The action metadata MUST be a URL Safe string.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Multipart response",
+            "headers": {
+              "Original-Sender": {
+                "$ref": "#/components/headers/Original-Sender"
+              },
+              "Final-Recipient": {
+                "$ref": "#/components/headers/Final-Recipient"
+              },
+              "Timestamp": {
+                "$ref": "#/components/headers/Timestamp"
+              },
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "multipart/mixed": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayloadBody"
+                },
+                "encoding": {
+                  "*": {
+                    "headers": {
+                      "Edel-Payload-Sig": {
+                        "$ref": "#/components/headers/Edel-Payload-Sig"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The server cannot or will not process the request due to an apparent client error (e.g., malformed request syntax, size too large, invalid request message framing, or deceptive request routing)",
+            "headers": {
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                },
+                "examples": {
+                  "ValidationFailed": {
+                    "value": {
+                      "title": "Validation Failed",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/message-validation-failed",
+                      "status": 400,
+                      "detail": "Sent when the message fails the validation process"
+                    }
+                  },
+                  "InvalidMessageId": {
+                    "value": {
+                      "title": "Invalid or Duplicate Message ID",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-message-id",
+                      "status": 400,
+                      "detail": "Sent when the MessageId is not valid"
+                    }
+                  },
+                  "InvalidSignature": {
+                    "value": {
+                      "title": "Invalid Message Signature",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-message-signature",
+                      "status": 400,
+                      "detail": "Sent when the message signature cannot be verified"
+                    }
+                  },
+                  "InvalidAddressing": {
+                    "value": {
+                      "title": "Invalid Addressing",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-addressing",
+                      "status": 400,
+                      "detail": "Sent when the Original Sender or Final Recipient(s) cannot be resolved"
+                    }
+                  },
+                  "InvalidMessageFormat": {
+                    "value": {
+                      "title": "Invalid Message Format",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-format",
+                      "status": 400,
+                      "detail": "Sent when the message format does not adhere to the specification"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Response Message Submission"
+        ],
+        "summary": "Response Message Submission Endpoint",
+        "description": "The Response Message Submission endpoint is the endpoint used for sending response messages in reply to a previously submitted message. It provides the endpoint to which a client sends the response message, as created by the final recipient.",
+        "operationId": "ResponseMessageSubmissionId",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Original-Sender"
+          },
+          {
+            "$ref": "#/components/parameters/Final-Recipient"
+          },
+          {
+            "$ref": "#/components/parameters/Timestamp"
+          },
+          {
+            "$ref": "#/components/parameters/Edel-Message-Sig"
+          },
+          {
+            "name": "messageId",
+            "in": "path",
+            "description": "The MessageId is the unique identifier of the message submitted. It MUST be defined by the client. It is used for reliable messaging for guaranteeing the at-most-once message submission (no duplicate message-ids are allowed by the server implementing the API).",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "dde12f67-c391-4851-8fa2-c07dd8532efd"
+          },
+          {
+            "name": "rMessageId",
+            "in": "path",
+            "description": "The identifier of the response message being submitted. It MUST be generated by the client submitting the response message.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Service",
+            "in": "path",
+            "description": "The Service metadata defines the service under which the message should be sent. It is combined with the Action metadata to provide a complete domain-level message target. The service metadata MUST be a URL Safe string.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "dsd-service"
+          },
+          {
+            "name": "Action",
+            "in": "path",
+            "description": "The Action metadata defines the action of the service under which the message should be sent. It is combined with the Service metadata to provide a complete domain-level target of the message. The action metadata MUST be a URL Safe string.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "dsd-action"
+          },
+          {
+            "name": "rService",
+            "in": "path",
+            "description": "The Service metadata defines the service under which the message should be sent. It is combined with the Action metadata to provide a complete domain-level message target. The service metadata MUST be a URL Safe string.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "rAction",
+            "in": "path",
+            "description": "The Action metadata defines the action of the service under which the message should be sent. It is combined with the Service metadata to provide a complete domain-level target of the message. The action metadata MUST be a URL Safe string.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/mixed": {
+              "schema": {
+                "$ref": "#/components/schemas/PayloadBody"
+              },
+              "encoding": {
+                "*": {
+                  "headers": {
+                    "Edel-Payload-Sig": {
+                      "$ref": "#/components/headers/Edel-Payload-Sig"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Sent when the message is properly validated and received.",
+            "headers": {
+              "Original-Sender": {
+                "$ref": "#/components/headers/Original-Sender"
+              },
+              "Final-Recipient": {
+                "$ref": "#/components/headers/Final-Recipient"
+              },
+              "Timestamp": {
+                "$ref": "#/components/headers/Timestamp"
+              },
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignalMessage"
+                },
+                "example": {
+                  "title": "Message Accepted",
+                  "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/message-accepted",
+                  "status": 202,
+                  "detail": "Sent when the message is properly validated. It may include a status monitor that can provide the user with an estimate of when the request will be fulfilled (see [RFC7231])",
+                  "instance": "/my-service/my-action/dde12f67-c391-4851-8fa2-c07dd8532efd",
+                  "digest": "sha-256=eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The server cannot or will not process the request due to an apparent client error (e.g., malformed request syntax, size too large, invalid request message framing, or deceptive request routing)",
+            "headers": {
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                },
+                "examples": {
+                  "ValidationFailed": {
+                    "value": {
+                      "title": "Validation Failed",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/message-validation-failed",
+                      "status": 400,
+                      "detail": "Sent when the message fails the validation process"
+                    }
+                  },
+                  "InvalidMessageId": {
+                    "value": {
+                      "title": "Invalid or Duplicate Message ID",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-message-id",
+                      "status": 400,
+                      "detail": "Sent when the MessageId is not valid"
+                    }
+                  },
+                  "InvalidSignature": {
+                    "value": {
+                      "title": "Invalid Message Signature",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-message-signature",
+                      "status": 400,
+                      "detail": "Sent when the message signature cannot be verified"
+                    }
+                  },
+                  "InvalidAddressing": {
+                    "value": {
+                      "title": "Invalid Addressing",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-addressing",
+                      "status": 400,
+                      "detail": "Sent when the Original Sender or Final Recipient(s) cannot be resolved"
+                    }
+                  },
+                  "InvalidMessageFormat": {
+                    "value": {
+                      "title": "Invalid Message Format",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-format",
+                      "status": 400,
+                      "detail": "Sent when the message format does not adhere to the specification"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/messaging/{Service}/{Action}/{messageId}/response": {
+      "get": {
+        "tags": [
+          "Response Message Reference List"
+        ],
+        "summary": "Get Response Message Reference List Endpoint",
+        "description": "This endpoint returns a list of response message references available for pulling, following the Message Reference schema, representing responses to a previous message sent by the original sender",
+        "operationId": "GetResponseMessageReferenceListId",
+        "parameters": [
+          {
+            "name": "messageId",
+            "in": "path",
+            "description": "The MessageId is the unique identifier of the message submitted. It MUST be defined by the client. It is used for reliable messaging for guaranteeing the at-most-once message submission (no duplicate message-ids are allowed by the server implementing the API).",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "dde12f67-c391-4851-8fa2-c07dd8532efd"
+          },
+          {
+            "name": "Service",
+            "in": "path",
+            "description": "The Service metadata defines the service under which the message should be sent. It is combined with the Action metadata to provide a complete domain-level message target. The service metadata MUST be a URL Safe string.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "dsd-service"
+          },
+          {
+            "name": "Action",
+            "in": "path",
+            "description": "The Action metadata defines the action of the service under which the message should be sent. It is combined with the Service metadata to provide a complete domain-level target of the message. The action metadata MUST be a URL Safe string.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "dsd-action"
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Sent when the message is properly validated and received.",
+            "headers": {
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageReferenceList"
+                },
+                "example": {
+                  "messageReferenceList": [
+                    {
+                      "messageId": "b8fdf130-b1f5-48d0-871d-04073ecb1752",
+                      "service": "my-service",
+                      "action": "my-action",
+                      "href": "/my-service/my-action/b8fdf130-b1f5-48d0-871d-04073ecb1752"
+                    },
+                    {
+                      "messageId": "577a12bf-d012-4923-bd8e-fcfff5afc349",
+                      "service": "my-service",
+                      "action": "my-action",
+                      "href": "/my-service/my-action/577a12bf-d012-4923-bd8e-fcfff5afc349"
+                    }
+                  ],
+                  "limit": -1,
+                  "offset": 0
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The server cannot or will not process the request due to an apparent client error (e.g., malformed request syntax, size too large, invalid request message framing, or deceptive request routing)",
+            "headers": {
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                },
+                "examples": {
+                  "ValidationFailed": {
+                    "value": {
+                      "title": "Validation Failed",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/message-validation-failed",
+                      "status": 400,
+                      "detail": "Sent when the message fails the validation process"
+                    }
+                  },
+                  "InvalidMessageId": {
+                    "value": {
+                      "title": "Invalid or Duplicate Message ID",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-message-id",
+                      "status": 400,
+                      "detail": "Sent when the MessageId is not valid"
+                    }
+                  },
+                  "InvalidSignature": {
+                    "value": {
+                      "title": "Invalid Message Signature",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-message-signature",
+                      "status": 400,
+                      "detail": "Sent when the message signature cannot be verified"
+                    }
+                  },
+                  "InvalidAddressing": {
+                    "value": {
+                      "title": "Invalid Addressing",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-addressing",
+                      "status": 400,
+                      "detail": "Sent when the Original Sender or Final Recipient(s) cannot be resolved"
+                    }
+                  },
+                  "InvalidMessageFormat": {
+                    "value": {
+                      "title": "Invalid Message Format",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-format",
+                      "status": 400,
+                      "detail": "Sent when the message format does not adhere to the specification"
+                    }
+                  },
+                  "NoRecipient": {
+                    "value": {
+                      "title": "No final recipient configured for the pulling user",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/pull/no-final-recipient",
+                      "status": 400,
+                      "detail": "Sent when the server cannot resolve/match the pulling user to a final recipient"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Similar to 403 Forbidden, but specifically for use when authentication is required and has failed or has not yet been provided. ",
+            "headers": {
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                },
+                "examples": {
+                  "Unauthorized": {
+                    "value": {
+                      "title": "Unauthorized",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/pull/unauthorized",
+                      "status": 401,
+                      "detail": "Sent when the pull request is unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested resource could not be found but may be available in the future. Subsequent requests by the client are permissible.",
+            "headers": {
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                },
+                "examples": {
+                  "NoMessage": {
+                    "value": {
+                      "title": "No Message Found",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/pull/no-message-found",
+                      "status": 404,
+                      "detail": "Sent when no message is found that maps to the pull request"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/messaging/{Service}/{Action}/{messageId}/response/{rService}": {
+      "get": {
+        "tags": [
+          "Response Message Reference List"
+        ],
+        "summary": "Get Response Message Reference List for service  Endpoint",
+        "description": "This endpoint returns a list of response message references available for pulling for a specific service, following the Message Reference schema, representing responses to a previous message sent by the original sender. ",
+        "operationId": "GetResponseMessageReferenceListForServiceEndpointId",
+        "parameters": [
+          {
+            "name": "messageId",
+            "in": "path",
+            "description": "The MessageId is the unique identifier of the message submitted. It MUST be defined by the client. It is used for reliable messaging for guaranteeing the at-most-once message submission (no duplicate message-ids are allowed by the server implementing the API).",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "dde12f67-c391-4851-8fa2-c07dd8532efd"
+          },
+          {
+            "name": "Service",
+            "in": "path",
+            "description": "The Service metadata defines the service under which the message should be sent. It is combined with the Action metadata to provide a complete domain-level message target. The service metadata MUST be a URL Safe string.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "dsd-service"
+          },
+          {
+            "name": "Action",
+            "in": "path",
+            "description": "The Action metadata defines the action of the service under which the message should be sent. It is combined with the Service metadata to provide a complete domain-level target of the message. The action metadata MUST be a URL Safe string.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "dsd-action"
+          },
+          {
+            "name": "rService",
+            "in": "path",
+            "description": "The Service metadata defines the service under which the message should be sent. It is combined with the Action metadata to provide a complete domain-level message target. The service metadata MUST be a URL Safe string.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Sent when the message is properly validated and received.",
+            "headers": {
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageReferenceList"
+                },
+                "example": {
+                  "messageReferenceList": [
+                    {
+                      "messageId": "ede9f972-12b1-46c7-bb6b-9d2d3c7f87e3",
+                      "service": "my-service",
+                      "action": "my-action",
+                      "href": "/my-service/my-action/ede9f972-12b1-46c7-bb6b-9d2d3c7f87e3"
+                    },
+                    {
+                      "messageId": "53b9a249-e3f7-4805-9ca7-c8943c8578ec",
+                      "service": "my-service",
+                      "action": "my-action",
+                      "href": "/my-service/my-action/53b9a249-e3f7-4805-9ca7-c8943c8578ec"
+                    }
+                  ],
+                  "limit": -1,
+                  "offset": 0
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The server cannot or will not process the request due to an apparent client error (e.g., malformed request syntax, size too large, invalid request message framing, or deceptive request routing)",
+            "headers": {
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                },
+                "examples": {
+                  "ValidationFailed": {
+                    "value": {
+                      "title": "Validation Failed",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/message-validation-failed",
+                      "status": 400,
+                      "detail": "Sent when the message fails the validation process"
+                    }
+                  },
+                  "InvalidMessageId": {
+                    "value": {
+                      "title": "Invalid or Duplicate Message ID",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-message-id",
+                      "status": 400,
+                      "detail": "Sent when the MessageId is not valid"
+                    }
+                  },
+                  "InvalidSignature": {
+                    "value": {
+                      "title": "Invalid Message Signature",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-message-signature",
+                      "status": 400,
+                      "detail": "Sent when the message signature cannot be verified"
+                    }
+                  },
+                  "InvalidAddressing": {
+                    "value": {
+                      "title": "Invalid Addressing",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-addressing",
+                      "status": 400,
+                      "detail": "Sent when the Original Sender or Final Recipient(s) cannot be resolved"
+                    }
+                  },
+                  "InvalidMessageFormat": {
+                    "value": {
+                      "title": "Invalid Message Format",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-format",
+                      "status": 400,
+                      "detail": "Sent when the message format does not adhere to the specification"
+                    }
+                  },
+                  "NoRecipient": {
+                    "value": {
+                      "title": "No final recipient configured for the pulling user",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/pull/no-final-recipient",
+                      "status": 400,
+                      "detail": "Sent when the server cannot resolve/match the pulling user to a final recipient"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Similar to 403 Forbidden, but specifically for use when authentication is required and has failed or has not yet been provided. ",
+            "headers": {
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                },
+                "examples": {
+                  "Unauthorized": {
+                    "value": {
+                      "title": "Unauthorized",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/pull/unauthorized",
+                      "status": 401,
+                      "detail": "Sent when the pull request is unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested resource could not be found but may be available in the future. Subsequent requests by the client are permissible.",
+            "headers": {
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                },
+                "examples": {
+                  "NoMessage": {
+                    "value": {
+                      "title": "No Message Found",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/pull/no-message-found",
+                      "status": 404,
+                      "detail": "Sent when no message is found that maps to the pull request"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/messaging/{Service}/{Action}/{messageId}/response/{rService}/{rAction}": {
+      "get": {
+        "tags": [
+          "Response Message Reference List"
+        ],
+        "summary": "Get Response Message Reference List for service and action Endpoint",
+        "description": "This endpoint returns a list of response message references available for pulling for a specific service and action, following the Message Reference schema, representing responses to a previous message sent by the original sender. ",
+        "operationId": "GetResponseMessageReferenceListForServiceAndActionEndpointId",
+        "parameters": [
+          {
+            "name": "messageId",
+            "in": "path",
+            "description": "The MessageId is the unique identifier of the message submitted. It MUST be defined by the client. It is used for reliable messaging for guaranteeing the at-most-once message submission (no duplicate message-ids are allowed by the server implementing the API).",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "dde12f67-c391-4851-8fa2-c07dd8532efd"
+          },
+          {
+            "name": "Service",
+            "in": "path",
+            "description": "The Service metadata defines the service under which the message should be sent. It is combined with the Action metadata to provide a complete domain-level message target. The service metadata MUST be a URL Safe string.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "dsd-service"
+          },
+          {
+            "name": "Action",
+            "in": "path",
+            "description": "The Action metadata defines the action of the service under which the message should be sent. It is combined with the Service metadata to provide a complete domain-level target of the message. The action metadata MUST be a URL Safe string.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "dsd-action"
+          },
+          {
+            "name": "rAction",
+            "in": "path",
+            "description": "The Action metadata defines the action of the service under which the message should be sent. It is combined with the Service metadata to provide a complete domain-level target of the message. The action metadata MUST be a URL Safe string.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "rService",
+            "in": "path",
+            "description": "The Service metadata defines the service under which the message should be sent. It is combined with the Action metadata to provide a complete domain-level message target. The service metadata MUST be a URL Safe string.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Sent when the message is properly validated and received.",
+            "headers": {
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageReferenceList"
+                },
+                "example": {
+                  "messageReferenceList": [
+                    {
+                      "messageId": "ce6a55c2-ac8c-424c-825d-0d0b7444fef6",
+                      "service": "my-service",
+                      "action": "my-action",
+                      "href": "/my-service/my-action/ce6a55c2-ac8c-424c-825d-0d0b7444fef6"
+                    },
+                    {
+                      "messageId": "36d6192d-8a44-4fe7-b94f-f179fb5c4ebd",
+                      "service": "my-service",
+                      "action": "my-action",
+                      "href": "/my-service/my-action/36d6192d-8a44-4fe7-b94f-f179fb5c4ebd"
+                    }
+                  ],
+                  "limit": -1,
+                  "offset": 0
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The server cannot or will not process the request due to an apparent client error (e.g., malformed request syntax, size too large, invalid request message framing, or deceptive request routing)",
+            "headers": {
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                },
+                "examples": {
+                  "ValidationFailed": {
+                    "value": {
+                      "title": "Validation Failed",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/message-validation-failed",
+                      "status": 400,
+                      "detail": "Sent when the message fails the validation process"
+                    }
+                  },
+                  "InvalidMessageId": {
+                    "value": {
+                      "title": "Invalid or Duplicate Message ID",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-message-id",
+                      "status": 400,
+                      "detail": "Sent when the MessageId is not valid"
+                    }
+                  },
+                  "InvalidSignature": {
+                    "value": {
+                      "title": "Invalid Message Signature",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-message-signature",
+                      "status": 400,
+                      "detail": "Sent when the message signature cannot be verified"
+                    }
+                  },
+                  "InvalidAddressing": {
+                    "value": {
+                      "title": "Invalid Addressing",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-addressing",
+                      "status": 400,
+                      "detail": "Sent when the Original Sender or Final Recipient(s) cannot be resolved"
+                    }
+                  },
+                  "InvalidMessageFormat": {
+                    "value": {
+                      "title": "Invalid Message Format",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-format",
+                      "status": 400,
+                      "detail": "Sent when the message format does not adhere to the specification"
+                    }
+                  },
+                  "NoRecipient": {
+                    "value": {
+                      "title": "No final recipient configured for the pulling user",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/pull/no-final-recipient",
+                      "status": 400,
+                      "detail": "Sent when the server cannot resolve/match the pulling user to a final recipient"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Similar to 403 Forbidden, but specifically for use when authentication is required and has failed or has not yet been provided. ",
+            "headers": {
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                },
+                "examples": {
+                  "Unauthorized": {
+                    "value": {
+                      "title": "Unauthorized",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/pull/unauthorized",
+                      "status": 401,
+                      "detail": "Sent when the pull request is unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested resource could not be found but may be available in the future. Subsequent requests by the client are permissible.",
+            "headers": {
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                },
+                "examples": {
+                  "NoMessage": {
+                    "value": {
+                      "title": "No Message Found",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/pull/no-message-found",
+                      "status": 404,
+                      "detail": "Sent when no message is found that maps to the pull request"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/messaging/{Service}/{Action}": {
+      "get": {
+        "tags": [
+          "Message Reference List"
+        ],
+        "summary": "Get Message Reference List for service and action Endpoint",
+        "description": "This endpoint returns a list of message references available for pulling for a specific service and action, following the Message Reference schema.",
+        "operationId": "GetMessageReferenceListForServiceAndActionId",
+        "parameters": [
+          {
+            "name": "Action",
+            "in": "path",
+            "description": "The Action metadata defines the action of the service under which the message should be sent. It is combined with the Service metadata to provide a complete domain-level target of the message. The action metadata MUST be a URL Safe string.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "dsd-action"
+          },
+          {
+            "name": "Service",
+            "in": "path",
+            "description": "The Service metadata defines the service under which the message should be sent. It is combined with the Action metadata to provide a complete domain-level message target. The service metadata MUST be a URL Safe string.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "dsd-service"
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Sent when the message is properly validated and received.",
+            "headers": {
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageReferenceList"
+                },
+                "example": {
+                  "messageReferenceList": [
+                    {
+                      "messageId": "46a4a7fe-1506-415b-ae91-a1a1c16806bd",
+                      "service": "my-service",
+                      "action": "my-action",
+                      "href": "/my-service/my-action/46a4a7fe-1506-415b-ae91-a1a1c16806bd"
+                    },
+                    {
+                      "messageId": "116c8be3-3c5a-4160-9c9d-d451b01feefc",
+                      "service": "my-service",
+                      "action": "my-action",
+                      "href": "/my-service/my-action/116c8be3-3c5a-4160-9c9d-d451b01feefc"
+                    }
+                  ],
+                  "limit": -1,
+                  "offset": 0
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The server cannot or will not process the request due to an apparent client error (e.g., malformed request syntax, size too large, invalid request message framing, or deceptive request routing)",
+            "headers": {
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                },
+                "examples": {
+                  "ValidationFailed": {
+                    "value": {
+                      "title": "Validation Failed",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/message-validation-failed",
+                      "status": 400,
+                      "detail": "Sent when the message fails the validation process"
+                    }
+                  },
+                  "InvalidMessageId": {
+                    "value": {
+                      "title": "Invalid or Duplicate Message ID",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-message-id",
+                      "status": 400,
+                      "detail": "Sent when the MessageId is not valid"
+                    }
+                  },
+                  "InvalidSignature": {
+                    "value": {
+                      "title": "Invalid Message Signature",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-message-signature",
+                      "status": 400,
+                      "detail": "Sent when the message signature cannot be verified"
+                    }
+                  },
+                  "InvalidAddressing": {
+                    "value": {
+                      "title": "Invalid Addressing",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-addressing",
+                      "status": 400,
+                      "detail": "Sent when the Original Sender or Final Recipient(s) cannot be resolved"
+                    }
+                  },
+                  "InvalidMessageFormat": {
+                    "value": {
+                      "title": "Invalid Message Format",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-format",
+                      "status": 400,
+                      "detail": "Sent when the message format does not adhere to the specification"
+                    }
+                  },
+                  "NoRecipient": {
+                    "value": {
+                      "title": "No final recipient configured for the pulling user",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/pull/no-final-recipient",
+                      "status": 400,
+                      "detail": "Sent when the server cannot resolve/match the pulling user to a final recipient"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Similar to 403 Forbidden, but specifically for use when authentication is required and has failed or has not yet been provided. ",
+            "headers": {
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                },
+                "examples": {
+                  "Unauthorized": {
+                    "value": {
+                      "title": "Unauthorized",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/pull/unauthorized",
+                      "status": 401,
+                      "detail": "Sent when the pull request is unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested resource could not be found but may be available in the future. Subsequent requests by the client are permissible.",
+            "headers": {
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                },
+                "examples": {
+                  "NoMessage": {
+                    "value": {
+                      "title": "No Message Found",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/pull/no-message-found",
+                      "status": 404,
+                      "detail": "Sent when no message is found that maps to the pull request"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/messaging/{Service}": {
+      "get": {
+        "tags": [
+          "Message Reference List"
+        ],
+        "summary": "Get Message Reference List for service Endpoint",
+        "description": "This endpoint returns a list of message references available for pulling for a specific service, following the Message Reference schema.",
+        "operationId": "GetMessageReferenceListForServiceId",
+        "parameters": [
+          {
+            "name": "Service",
+            "in": "path",
+            "description": "The Service metadata defines the service under which the message should be sent. It is combined with the Action metadata to provide a complete domain-level message target. The service metadata MUST be a URL Safe string.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "dsd-service"
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Sent when the message is properly validated and received.",
+            "headers": {
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageReferenceList"
+                },
+                "example": {
+                  "messageReferenceList": [
+                    {
+                      "messageId": "494569e4-18af-44ca-9d93-921acf9c8b99",
+                      "service": "my-service",
+                      "action": "my-action",
+                      "href": "/my-service/my-action/494569e4-18af-44ca-9d93-921acf9c8b99"
+                    },
+                    {
+                      "messageId": "75e17b8e-4015-48b8-b2c4-a61e808d9199",
+                      "service": "my-service",
+                      "action": "my-action",
+                      "href": "/my-service/my-action/75e17b8e-4015-48b8-b2c4-a61e808d9199"
+                    }
+                  ],
+                  "limit": -1,
+                  "offset": 0
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The server cannot or will not process the request due to an apparent client error (e.g., malformed request syntax, size too large, invalid request message framing, or deceptive request routing)",
+            "headers": {
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                },
+                "examples": {
+                  "ValidationFailed": {
+                    "value": {
+                      "title": "Validation Failed",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/message-validation-failed",
+                      "status": 400,
+                      "detail": "Sent when the message fails the validation process"
+                    }
+                  },
+                  "InvalidMessageId": {
+                    "value": {
+                      "title": "Invalid or Duplicate Message ID",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-message-id",
+                      "status": 400,
+                      "detail": "Sent when the MessageId is not valid"
+                    }
+                  },
+                  "InvalidSignature": {
+                    "value": {
+                      "title": "Invalid Message Signature",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-message-signature",
+                      "status": 400,
+                      "detail": "Sent when the message signature cannot be verified"
+                    }
+                  },
+                  "InvalidAddressing": {
+                    "value": {
+                      "title": "Invalid Addressing",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-addressing",
+                      "status": 400,
+                      "detail": "Sent when the Original Sender or Final Recipient(s) cannot be resolved"
+                    }
+                  },
+                  "InvalidMessageFormat": {
+                    "value": {
+                      "title": "Invalid Message Format",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-format",
+                      "status": 400,
+                      "detail": "Sent when the message format does not adhere to the specification"
+                    }
+                  },
+                  "NoRecipient": {
+                    "value": {
+                      "title": "No final recipient configured for the pulling user",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/pull/no-final-recipient",
+                      "status": 400,
+                      "detail": "Sent when the server cannot resolve/match the pulling user to a final recipient"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Similar to 403 Forbidden, but specifically for use when authentication is required and has failed or has not yet been provided. ",
+            "headers": {
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                },
+                "examples": {
+                  "Unauthorized": {
+                    "value": {
+                      "title": "Unauthorized",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/pull/unauthorized",
+                      "status": 401,
+                      "detail": "Sent when the pull request is unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested resource could not be found but may be available in the future. Subsequent requests by the client are permissible.",
+            "headers": {
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                },
+                "examples": {
+                  "NoMessage": {
+                    "value": {
+                      "title": "No Message Found",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/pull/no-message-found",
+                      "status": 404,
+                      "detail": "Sent when no message is found that maps to the pull request"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/messaging/{messageId}/response/signal": {
+      "post": {
+        "tags": [
+          "Response Message Submission"
+        ],
+        "summary": "Signal Submission Endpoint ",
+        "description": "The  Signal Submission endpoint is used for signalling the successfully pulled message or to response errors/warnings at receiving messages.",
+        "operationId": "SignalSubmissionId",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Original-Sender"
+          },
+          {
+            "$ref": "#/components/parameters/Final-Recipient"
+          },
+          {
+            "$ref": "#/components/parameters/Timestamp"
+          },
+          {
+            "$ref": "#/components/parameters/Edel-Message-Sig"
+          },
+          {
+            "name": "messageId",
+            "in": "path",
+            "description": "The MessageId is the unique identifier of the message submitted. It MUST be defined by the client. It is used for reliable messaging for guaranteeing the at-most-once message submission (no duplicate message-ids are allowed by the server implementing the API).",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "dde12f67-c391-4851-8fa2-c07dd8532efd"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignalMessage"
+              },
+              "example": {
+                "title": "Message Response is ready",
+                "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/message-ready",
+                "status": 201,
+                "detail": "An HTTP Request following [RFC7807] MUST be sent when a message response is ready to be retrieve",
+                "instance": "/my-service/my-action/dde12f67-c391-4851-8fa2-c07dd8532efd",
+                "digest": "sha-256=eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Sent when the message is properly validated and received.",
+            "headers": {
+              "Original-Sender": {
+                "$ref": "#/components/headers/Original-Sender"
+              },
+              "Final-Recipient": {
+                "$ref": "#/components/headers/Final-Recipient"
+              },
+              "Timestamp": {
+                "$ref": "#/components/headers/Timestamp"
+              },
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignalMessage"
+                },
+                "example": {
+                  "title": "Message Accepted",
+                  "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/message-accepted",
+                  "status": 202,
+                  "detail": "Sent when the message is properly validated. It may include a status monitor that can provide the user with an estimate of when the request will be fulfilled (see [RFC7231])",
+                  "instance": "/my-service/my-action/dde12f67-c391-4851-8fa2-c07dd8532efd",
+                  "digest": "sha-256=eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The server cannot or will not process the request due to an apparent client error (e.g., malformed request syntax, size too large, invalid request message framing, or deceptive request routing)",
+            "headers": {
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                },
+                "examples": {
+                  "ValidationFailed": {
+                    "value": {
+                      "title": "Validation Failed",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/message-validation-failed",
+                      "status": 400,
+                      "detail": "Sent when the message fails the validation process"
+                    }
+                  },
+                  "InvalidMessageId": {
+                    "value": {
+                      "title": "Invalid or Duplicate Message ID",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-message-id",
+                      "status": 400,
+                      "detail": "Sent when the MessageId is not valid"
+                    }
+                  },
+                  "InvalidSignature": {
+                    "value": {
+                      "title": "Invalid Message Signature",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-message-signature",
+                      "status": 400,
+                      "detail": "Sent when the message signature cannot be verified"
+                    }
+                  },
+                  "InvalidAddressing": {
+                    "value": {
+                      "title": "Invalid Addressing",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-addressing",
+                      "status": 400,
+                      "detail": "Sent when the Original Sender or Final Recipient(s) cannot be resolved"
+                    }
+                  },
+                  "InvalidMessageFormat": {
+                    "value": {
+                      "title": "Invalid Message Format",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-format",
+                      "status": 400,
+                      "detail": "Sent when the message format does not adhere to the specification"
+                    }
+                  },
+                  "NoRecipient": {
+                    "value": {
+                      "title": "No final recipient configured for the pulling user",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/pull/no-final-recipient",
+                      "status": 400,
+                      "detail": "Sent when the server cannot resolve/match the pulling user to a final recipient"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Similar to 403 Forbidden, but specifically for use when authentication is required and has failed or has not yet been provided. ",
+            "headers": {
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                },
+                "examples": {
+                  "Unauthorized": {
+                    "value": {
+                      "title": "Unauthorized",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/pull/unauthorized",
+                      "status": 401,
+                      "detail": "Sent when the pull request is unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested resource could not be found but may be available in the future. Subsequent requests by the client are permissible.",
+            "headers": {
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                },
+                "examples": {
+                  "NoMessage": {
+                    "value": {
+                      "title": "No Message Found",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/pull/no-message-found",
+                      "status": 404,
+                      "detail": "Sent when no message is found that maps to the pull request"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/messaging/{Service}/{Action}/{messageId}/sync": {
+      "post": {
+        "tags": [
+          "Message Submission"
+        ],
+        "summary": "Message Submission with Synchronous Response Endpoint",
+        "description": "The Message submission With Synchronous Response endpoint is the alternative endpoint of the messaging API. It provides the endpoint to which a client sends the message, as created by the original sender, and responds synchronously with a response message. ",
+        "operationId": "MessageSubmissionWithSynchronousResponse",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Original-Sender"
+          },
+          {
+            "$ref": "#/components/parameters/Final-Recipient"
+          },
+          {
+            "$ref": "#/components/parameters/Timestamp"
+          },
+          {
+            "$ref": "#/components/parameters/Edel-Message-Sig"
+          },
+          {
+            "name": "messageId",
+            "in": "path",
+            "description": "The MessageId is the unique identifier of the message submitted. It MUST be defined by the client. It is used for reliable messaging for guaranteeing the at-most-once message submission (no duplicate message-ids are allowed by the server implementing the API).",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "dde12f67-c391-4851-8fa2-c07dd8532efd"
+          },
+          {
+            "name": "Service",
+            "in": "path",
+            "description": "The Service metadata defines the service under which the message should be sent. It is combined with the Action metadata to provide a complete domain-level message target. The service metadata MUST be a URL Safe string.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "dsd-service"
+          },
+          {
+            "name": "Action",
+            "in": "path",
+            "description": "The Action metadata defines the action of the service under which the message should be sent. It is combined with the Service metadata to provide a complete domain-level target of the message. The action metadata MUST be a URL Safe string.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "dsd-action"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/mixed": {
+              "schema": {
+                "$ref": "#/components/schemas/PayloadBody"
+              },
+              "encoding": {
+                "*": {
+                  "headers": {
+                    "Edel-Payload-Sig": {
+                      "$ref": "#/components/headers/Edel-Payload-Sig"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Multipart response",
+            "headers": {
+              "Original-Sender": {
+                "$ref": "#/components/headers/Original-Sender"
+              },
+              "Final-Recipient": {
+                "$ref": "#/components/headers/Final-Recipient"
+              },
+              "Timestamp": {
+                "$ref": "#/components/headers/Timestamp"
+              },
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "multipart/mixed": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayloadBody"
+                },
+                "encoding": {
+                  "*": {
+                    "headers": {
+                      "Edel-Payload-Sig": {
+                        "$ref": "#/components/headers/Edel-Payload-Sig"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The server cannot or will not process the request due to an apparent client error (e.g., malformed request syntax, size too large, invalid request message framing, or deceptive request routing)",
+            "headers": {
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                },
+                "examples": {
+                  "ValidationFailed": {
+                    "value": {
+                      "title": "Validation Failed",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/message-validation-failed",
+                      "status": 400,
+                      "detail": "Sent when the message fails the validation process"
+                    }
+                  },
+                  "InvalidMessageId": {
+                    "value": {
+                      "title": "Invalid or Duplicate Message ID",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-message-id",
+                      "status": 400,
+                      "detail": "Sent when the MessageId is not valid"
+                    }
+                  },
+                  "InvalidSignature": {
+                    "value": {
+                      "title": "Invalid Message Signature",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-message-signature",
+                      "status": 400,
+                      "detail": "Sent when the message signature cannot be verified"
+                    }
+                  },
+                  "InvalidAddressing": {
+                    "value": {
+                      "title": "Invalid Addressing",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-addressing",
+                      "status": 400,
+                      "detail": "Sent when the Original Sender or Final Recipient(s) cannot be resolved"
+                    }
+                  },
+                  "InvalidMessageFormat": {
+                    "value": {
+                      "title": "Invalid Message Format",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-format",
+                      "status": 400,
+                      "detail": "Sent when the message format does not adhere to the specification"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/messaging-webhook/{messageId}/response/{rService}/{rAction}/{rMessageId}": {
+      "post": {
+        "tags": [
+          "Response Message Submission"
+        ],
+        "summary": "Webhook Response Message Submission Endpoint",
+        "description": "The Webhook Response Message Submission endpoint is the webhook endpoint used for sending response messages in reply to a previously submitted message. It provides the endpoint to which a server sends the response message, as created by the final recipient. Table 6 provides an overview of the HTTP Multipart body and fields defined and required for the implementation of this endpoint.",
+        "operationId": "WebhookResponseMessageSubmissionId",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Original-Sender"
+          },
+          {
+            "$ref": "#/components/parameters/Final-Recipient"
+          },
+          {
+            "$ref": "#/components/parameters/Timestamp"
+          },
+          {
+            "$ref": "#/components/parameters/Edel-Message-Sig"
+          },
+          {
+            "name": "messageId",
+            "in": "path",
+            "description": "The MessageId is the unique identifier of the message submitted. It MUST be defined by the client. It is used for reliable messaging for guaranteeing the at-most-once message submission (no duplicate message-ids are allowed by the server implementing the API).",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "dde12f67-c391-4851-8fa2-c07dd8532efd"
+          },
+          {
+            "name": "rMessageId",
+            "in": "path",
+            "description": "The identifier of the response message being submitted. It MUST be generated by the client submitting the response message.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "rService",
+            "in": "path",
+            "description": "The Service metadata defines the service under which the message should be sent. It is combined with the Action metadata to provide a complete domain-level message target. The service metadata MUST be a URL Safe string.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "rAction",
+            "in": "path",
+            "description": "The Action metadata defines the action of the service under which the message should be sent. It is combined with the Service metadata to provide a complete domain-level target of the message. The action metadata MUST be a URL Safe string.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/mixed": {
+              "schema": {
+                "$ref": "#/components/schemas/PayloadBody"
+              },
+              "encoding": {
+                "*": {
+                  "headers": {
+                    "Edel-Payload-Sig": {
+                      "$ref": "#/components/headers/Edel-Payload-Sig"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Sent when the message is properly validated and received.",
+            "headers": {
+              "Original-Sender": {
+                "$ref": "#/components/headers/Original-Sender"
+              },
+              "Final-Recipient": {
+                "$ref": "#/components/headers/Final-Recipient"
+              },
+              "Timestamp": {
+                "$ref": "#/components/headers/Timestamp"
+              },
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignalMessage"
+                },
+                "example": {
+                  "title": "Message Accepted",
+                  "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/message-accepted",
+                  "status": 202,
+                  "detail": "Sent when the message is properly validated. It may include a status monitor that can provide the user with an estimate of when the request will be fulfilled (see [RFC7231])",
+                  "instance": "/my-service/my-action/dde12f67-c391-4851-8fa2-c07dd8532efd",
+                  "digest": "sha-256=eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The server cannot or will not process the request due to an apparent client error (e.g., malformed request syntax, size too large, invalid request message framing, or deceptive request routing)",
+            "headers": {
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                },
+                "examples": {
+                  "ValidationFailed": {
+                    "value": {
+                      "title": "Validation Failed",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/message-validation-failed",
+                      "status": 400,
+                      "detail": "Sent when the message fails the validation process"
+                    }
+                  },
+                  "InvalidMessageId": {
+                    "value": {
+                      "title": "Invalid or Duplicate Message ID",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-message-id",
+                      "status": 400,
+                      "detail": "Sent when the MessageId is not valid"
+                    }
+                  },
+                  "InvalidSignature": {
+                    "value": {
+                      "title": "Invalid Message Signature",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-message-signature",
+                      "status": 400,
+                      "detail": "Sent when the message signature cannot be verified"
+                    }
+                  },
+                  "InvalidAddressing": {
+                    "value": {
+                      "title": "Invalid Addressing",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-addressing",
+                      "status": 400,
+                      "detail": "Sent when the Original Sender or Final Recipient(s) cannot be resolved"
+                    }
+                  },
+                  "InvalidMessageFormat": {
+                    "value": {
+                      "title": "Invalid Message Format",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-format",
+                      "status": 400,
+                      "detail": "Sent when the message format does not adhere to the specification"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/messaging-webhook/{messageId}/response/signal": {
+      "post": {
+        "tags": [
+          "Response Message Submission"
+        ],
+        "summary": "Webhook Signal Submission Endpoint Endpoint",
+        "description": "The Webhook Signal Submission endpoint is the webhook endpoint used for signalling the availability of a response message in reply to a previously submitted message. It provides the endpoint to which a server signals the availability of the response message. ",
+        "operationId": "WebhookSignalSubmissionId",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Original-Sender"
+          },
+          {
+            "$ref": "#/components/parameters/Final-Recipient"
+          },
+          {
+            "$ref": "#/components/parameters/Timestamp"
+          },
+          {
+            "$ref": "#/components/parameters/Edel-Message-Sig"
+          },
+          {
+            "name": "messageId",
+            "in": "path",
+            "description": "The MessageId is the unique identifier of the message submitted. It MUST be defined by the client. It is used for reliable messaging for guaranteeing the at-most-once message submission (no duplicate message-ids are allowed by the server implementing the API).",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "dde12f67-c391-4851-8fa2-c07dd8532efd"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignalMessage"
+              },
+              "example": {
+                "title": "Message Response is ready",
+                "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/message-ready",
+                "status": 201,
+                "detail": "An HTTP Request following [RFC7807] MUST be sent when a message response is ready to be retrieve",
+                "instance": "/my-service/my-action/dde12f67-c391-4851-8fa2-c07dd8532efd",
+                "digest": "sha-256=eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Sent when the message is properly validated and received.",
+            "headers": {
+              "Original-Sender": {
+                "$ref": "#/components/headers/Original-Sender"
+              },
+              "Final-Recipient": {
+                "$ref": "#/components/headers/Final-Recipient"
+              },
+              "Timestamp": {
+                "$ref": "#/components/headers/Timestamp"
+              },
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignalMessage"
+                },
+                "example": {
+                  "title": "Message Accepted",
+                  "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/message-accepted",
+                  "status": 202,
+                  "detail": "Sent when the message is properly validated. It may include a status monitor that can provide the user with an estimate of when the request will be fulfilled (see [RFC7231])",
+                  "instance": "/my-service/my-action/dde12f67-c391-4851-8fa2-c07dd8532efd",
+                  "digest": "sha-256=eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The server cannot or will not process the request due to an apparent client error (e.g., malformed request syntax, size too large, invalid request message framing, or deceptive request routing)",
+            "headers": {
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                },
+                "examples": {
+                  "ValidationFailed": {
+                    "value": {
+                      "title": "Validation Failed",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/message-validation-failed",
+                      "status": 400,
+                      "detail": "Sent when the message fails the validation process"
+                    }
+                  },
+                  "InvalidMessageId": {
+                    "value": {
+                      "title": "Invalid or Duplicate Message ID",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-message-id",
+                      "status": 400,
+                      "detail": "Sent when the MessageId is not valid"
+                    }
+                  },
+                  "InvalidSignature": {
+                    "value": {
+                      "title": "Invalid Message Signature",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-message-signature",
+                      "status": 400,
+                      "detail": "Sent when the message signature cannot be verified"
+                    }
+                  },
+                  "InvalidAddressing": {
+                    "value": {
+                      "title": "Invalid Addressing",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-addressing",
+                      "status": 400,
+                      "detail": "Sent when the Original Sender or Final Recipient(s) cannot be resolved"
+                    }
+                  },
+                  "InvalidMessageFormat": {
+                    "value": {
+                      "title": "Invalid Message Format",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-format",
+                      "status": 400,
+                      "detail": "Sent when the message format does not adhere to the specification"
+                    }
+                  },
+                  "NoRecipient": {
+                    "value": {
+                      "title": "No final recipient configured for the pulling user",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/pull/no-final-recipient",
+                      "status": 400,
+                      "detail": "Sent when the server cannot resolve/match the pulling user to a final recipient"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Similar to 403 Forbidden, but specifically for use when authentication is required and has failed or has not yet been provided. ",
+            "headers": {
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                },
+                "examples": {
+                  "Unauthorized": {
+                    "value": {
+                      "title": "Unauthorized",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/pull/unauthorized",
+                      "status": 401,
+                      "detail": "Sent when the pull request is unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested resource could not be found but may be available in the future. Subsequent requests by the client are permissible.",
+            "headers": {
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                },
+                "examples": {
+                  "NoMessage": {
+                    "value": {
+                      "title": "No Message Found",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/pull/no-message-found",
+                      "status": 404,
+                      "detail": "Sent when no message is found that maps to the pull request"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "jws-compact-detached": {
+        "title": "The message-level and payload signature",
+        "pattern": "^[A-Za-z0-9_-]+((?:\\.[A-Za-z0-9_-]+){2}|(?:(\\.\\.)[A-Za-z0-9_-]+){1})",
+        "type": "string",
+        "description": "The JWS compact representation schema defines the string pattern as a regular expression, denoting the structure a JWS compact token MUST follow to be a valid compact JWS Representation. It is used for defining the value of the message-level signature and of the payload signature",
+        "format": "jws-compact-detached"
+      },
+      "PayloadBody": {
+        "type": "object",
+        "properties": {
+          "payloads": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Array of messaging payloads",
+              "format": "binary"
+            }
+          }
+        },
+        "description": "Object holds multipart/mixed array of payloads"
+      },
+      "SignalMessage": {
+        "title": "A Signal message which extends Problem object (RFC 7807) defined by the ISA² IPS REST API Core Profile",
+        "required": [
+          "instance",
+          "status",
+          "title",
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "A short summary of the problem type, written in English and readable for engineers (usually not suited for non technical stakeholders and not localized).",
+            "example": "Service Unavailable"
+          },
+          "type": {
+            "type": "string",
+            "description": "An URI reference that identifies the problem type. When dereferenced, it SHOULD provide human-readable documentation for the problem type (e.g. using HTML)",
+            "format": "uri",
+            "default": "about:blank"
+          },
+          "status": {
+            "maximum": 600,
+            "exclusiveMaximum": true,
+            "minimum": 200,
+            "type": "integer",
+            "description": "The HTTP status code generated by the origin server for this occurrence of the ",
+            "format": "int32",
+            "example": 503
+          },
+          "detail": {
+            "type": "string",
+            "description": "A human-readable explanation specific to this occurrence of the problem",
+            "format": "string"
+          },
+          "instance": {
+            "type": "string",
+            "description": "A URI reference that identifies the specific occurrence of the  It may or may not yieldfurther information if dereferenced.",
+            "format": "uri-reference"
+          },
+          "digest": {
+            "type": "string",
+            "description": "The digest of the received message using the notation proposed in 'Digest Header' (https://datatracker.ietf.org/doc/html/draft-ietf-httpbis-digest-headers)",
+            "format": "uri-reference",
+            "example": "sha-256=4REjxQ4yrqUVicfSKYNO/cF9zNj5ANbzgDZt3/h3Qxo="
+          }
+        },
+        "description": "A Signal message which extends Problem object (RFC 7807) defined by the ISA² IPS REST API Core Profile",
+        "$id": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging.schema.json",
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "Problem": {
+        "title": "A Problem Details object (RFC 7807) defined by the ISA² IPS REST API Core Profile",
+        "required": [
+          "status",
+          "title",
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "A short summary of the problem type, written in English and readable for engineers (usually not suited for non technical stakeholders and not localized).",
+            "example": "Service Unavailable"
+          },
+          "type": {
+            "type": "string",
+            "description": "An URI reference that identifies the problem type. When dereferenced, it SHOULD provide human-readable documentation for the problem type (e.g. using HTML)",
+            "format": "uri",
+            "default": "about:blank"
+          },
+          "status": {
+            "maximum": 600,
+            "exclusiveMaximum": true,
+            "minimum": 200,
+            "type": "integer",
+            "description": "The HTTP status code generated by the origin server for this occurrence of the problem.",
+            "format": "int32",
+            "example": 503
+          },
+          "detail": {
+            "type": "string",
+            "description": "A human-readable explanation specific to this occurrence of the problem",
+            "format": "string"
+          },
+          "instance": {
+            "type": "string",
+            "description": "A URI reference that identifies the specific occurrence of the problem. It may or may not yieldfurther information if dereferenced.",
+            "format": "uri-reference"
+          }
+        },
+        "description": "A Problem Details object (RFC 7807) with ISA² IPS REST API extensions, used for signals (responses) to messages",
+        "$id": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging.schema.json",
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "MessageReferenceList": {
+        "title": "A Message Reference object defined by the ISA² IPS REST API Messaging API Specification",
+        "required": [
+          "messageReferenceList"
+        ],
+        "type": "object",
+        "properties": {
+          "messageReferenceList": {
+            "type": "array",
+            "description": "List of message references.",
+            "items": {
+              "$ref": "#/components/schemas/MessageReference"
+            }
+          },
+          "count": {
+            "type": "integer",
+            "description": "Count of all messages",
+            "format": "int32"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "limit number of references.",
+            "format": "int32"
+          },
+          "offset": {
+            "type": "integer",
+            "description": "offset of references.",
+            "format": "int32"
+          }
+        },
+        "description": "A Message Reference object to be used when multiple messages could be retrieved from an API operation",
+        "$id": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../message-reference-schema-list.json",
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "MessageReference": {
+        "title": "A Message Reference object defined by the ISA² IPS REST API Messaging API Specification",
+        "required": [
+          "action",
+          "messageId",
+          "service"
+        ],
+        "type": "object",
+        "properties": {
+          "messageId": {
+            "type": "string",
+            "description": "The unique identifier of the message."
+          },
+          "service": {
+            "type": "string",
+            "description": "A representation of the service the message is submitted to."
+          },
+          "action": {
+            "type": "string",
+            "description": "A representation of the action related to the service the message is submitted to."
+          },
+          "href": {
+            "type": "string",
+            "description": "The direct link for getting the specific message",
+            "format": "uri-reference"
+          }
+        },
+        "description": "A Message Reference object to be used when multiple messages could be retrieved from an API operation",
+        "$id": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../message-reference-schema.json",
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      }
+    },
+    "parameters": {
+      "Original-Sender": {
+        "name": "Original-Sender",
+        "in": "header",
+        "description": "The Original Sender represents the authenticated entity acting as the user that sends the message using the client. Following the API Core Profile, the original sender MUST be represented with an OpenID Connect token, in the form of Compact JWT Token.",
+        "schema": {
+          "$ref": "#/components/schemas/jws-compact-detached"
+        },
+        "example": "eyJhbGciOiJIUzINiIsnRI6IkpXVCJ9.eyJzdWIiOiIxM0NTY3ODkwIiwibmIiwiaWF0IoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMePOk6yJV_adQssw5c"
+      },
+      "Final-Recipient": {
+        "name": "Final-Recipient",
+        "in": "header",
+        "description": "The Final Recipient is the entity for whom the message is sent. Can be a single identifier or a set of identifiers, as described in the Recipient Addressing Schemes section of the specification. The representation of the final recipient is out of scope of the current specification.",
+        "schema": {
+          "type": "string"
+        },
+        "example": "9999::333222111"
+      },
+      "Timestamp": {
+        "name": "Timestamp",
+        "in": "header",
+        "description": "The Timestamp is the exact date and time at which the message was sent. It is provided by the client and verified by the server.",
+        "schema": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "example": "2021-06-17T08:30:00Z"
+      },
+      "Edel-Message-Sig": {
+        "name": "Edel-Message-Sig",
+        "in": "header",
+        "description": "The Edel-Message-Sig carries the signature of the HTTP Message following the API Core Profile on Message-Level Security. Following the light context constraints, the signature is optional for the client messages, but is RECOMMENDED for server messages.",
+        "schema": {
+          "$ref": "#/components/schemas/jws-compact-detached"
+        },
+        "example": "eyJhbGciOiJIUzINiIsnRI6IkpXVCJ9.eyJzdWIiOiIxM0NTY3ODkwIiwibmIiwiaWF0IoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMePOk6yJV_adQssw5c"
+      },
+      "Signal-Webhook": {
+        "name": "Signal-Webhook",
+        "in": "header",
+        "description": "The Signal-Webhook provides the callback URL that the server MUST use for sending a signal back. It is required when implementing the \"Send Message with Asynchronous Response – Push and Webhook Pull\" exchange pattern.",
+        "schema": {
+          "type": "string",
+          "format": "uri"
+        }
+      },
+      "Response-Webhook": {
+        "name": "Response-Webhook",
+        "in": "header",
+        "description": "The Response-Webhook provides the callback URL that the server MUST use for sending a response. It is required when implementing the \"Send Message with Asynchronous Response – Push and Webhook Push\" exchange pattern.",
+        "schema": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    },
+    "headers": {
+      "Edel-Payload-Sig": {
+        "description": "The Edel-Payload-Sig carries the signature of a subpart of the Multipart message (see User Message section) following the API Core Profile on Payload Security.",
+        "schema": {
+          "$ref": "#/components/schemas/jws-compact-detached"
+        }
+      },
+      "Original-Sender": {
+        "description": "The Original Sender represents the authenticated entity acting as the user that sends the message using the client. Following the API Core Profile, the original sender MUST be represented with an OpenID Connect token, in the form of Compact JWT Token.",
+        "schema": {
+          "$ref": "#/components/schemas/jws-compact-detached"
+        }
+      },
+      "Final-Recipient": {
+        "description": "The Final Recipient is the entity for whom the message is sent. Can be a single identifier or a set of identifiers, as described in the Recipient Addressing Schemes section of the specification. The representation of the final recipient is out of scope of the current specification.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "Timestamp": {
+        "description": "The Timestamp is the exact date and time at which the message was sent. It is provided by the client and verified by the server.",
+        "schema": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "Edel-Message-Sig": {
+        "description": "The Edel-Message-Sig carries the signature of the HTTP Message following the API Core Profile on Message-Level Security. Following the light context constraints, the signature is optional for the client messages, but is RECOMMENDED for server messages.",
+        "schema": {
+          "$ref": "#/components/schemas/jws-compact-detached"
+        }
+      }
+    }
+  },
+  "webhooks": {
+    "/v1/messaging/{messageId}/response/signal": {
+      "post": {
+        "tags": [
+          "Response Message Submission"
+        ],
+        "summary": "Signal Submission Endpoint ",
+        "description": "The  Signal Submission endpoint is used for signalling the successfully pulled message or to response errors/warnings at receiving messages.",
+        "operationId": "SignalSubmissionId",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Original-Sender"
+          },
+          {
+            "$ref": "#/components/parameters/Final-Recipient"
+          },
+          {
+            "$ref": "#/components/parameters/Timestamp"
+          },
+          {
+            "$ref": "#/components/parameters/Edel-Message-Sig"
+          },
+          {
+            "name": "messageId",
+            "in": "path",
+            "description": "The MessageId is the unique identifier of the message submitted. It MUST be defined by the client. It is used for reliable messaging for guaranteeing the at-most-once message submission (no duplicate message-ids are allowed by the server implementing the API).",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "dde12f67-c391-4851-8fa2-c07dd8532efd"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignalMessage"
+              },
+              "example": {
+                "title": "Message Response is ready",
+                "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/message-ready",
+                "status": 201,
+                "detail": "An HTTP Request following [RFC7807] MUST be sent when a message response is ready to be retrieve",
+                "instance": "/my-service/my-action/dde12f67-c391-4851-8fa2-c07dd8532efd",
+                "digest": "sha-256=eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Sent when the message is properly validated and received.",
+            "headers": {
+              "Original-Sender": {
+                "$ref": "#/components/headers/Original-Sender"
+              },
+              "Final-Recipient": {
+                "$ref": "#/components/headers/Final-Recipient"
+              },
+              "Timestamp": {
+                "$ref": "#/components/headers/Timestamp"
+              },
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignalMessage"
+                },
+                "example": {
+                  "title": "Message Accepted",
+                  "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/message-accepted",
+                  "status": 202,
+                  "detail": "Sent when the message is properly validated. It may include a status monitor that can provide the user with an estimate of when the request will be fulfilled (see [RFC7231])",
+                  "instance": "/my-service/my-action/dde12f67-c391-4851-8fa2-c07dd8532efd",
+                  "digest": "sha-256=eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The server cannot or will not process the request due to an apparent client error (e.g., malformed request syntax, size too large, invalid request message framing, or deceptive request routing)",
+            "headers": {
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                },
+                "examples": {
+                  "ValidationFailed": {
+                    "value": {
+                      "title": "Validation Failed",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/message-validation-failed",
+                      "status": 400,
+                      "detail": "Sent when the message fails the validation process"
+                    }
+                  },
+                  "InvalidMessageId": {
+                    "value": {
+                      "title": "Invalid or Duplicate Message ID",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-message-id",
+                      "status": 400,
+                      "detail": "Sent when the MessageId is not valid"
+                    }
+                  },
+                  "InvalidSignature": {
+                    "value": {
+                      "title": "Invalid Message Signature",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-message-signature",
+                      "status": 400,
+                      "detail": "Sent when the message signature cannot be verified"
+                    }
+                  },
+                  "InvalidAddressing": {
+                    "value": {
+                      "title": "Invalid Addressing",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-addressing",
+                      "status": 400,
+                      "detail": "Sent when the Original Sender or Final Recipient(s) cannot be resolved"
+                    }
+                  },
+                  "InvalidMessageFormat": {
+                    "value": {
+                      "title": "Invalid Message Format",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-format",
+                      "status": 400,
+                      "detail": "Sent when the message format does not adhere to the specification"
+                    }
+                  },
+                  "NoRecipient": {
+                    "value": {
+                      "title": "No final recipient configured for the pulling user",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/pull/no-final-recipient",
+                      "status": 400,
+                      "detail": "Sent when the server cannot resolve/match the pulling user to a final recipient"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Similar to 403 Forbidden, but specifically for use when authentication is required and has failed or has not yet been provided. ",
+            "headers": {
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                },
+                "examples": {
+                  "Unauthorized": {
+                    "value": {
+                      "title": "Unauthorized",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/pull/unauthorized",
+                      "status": 401,
+                      "detail": "Sent when the pull request is unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested resource could not be found but may be available in the future. Subsequent requests by the client are permissible.",
+            "headers": {
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                },
+                "examples": {
+                  "NoMessage": {
+                    "value": {
+                      "title": "No Message Found",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/pull/no-message-found",
+                      "status": 404,
+                      "detail": "Sent when no message is found that maps to the pull request"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/messaging-webhook/{messageId}/response/{rService}/{rAction}/{rMessageId}": {
+      "post": {
+        "tags": [
+          "Response Message Submission"
+        ],
+        "summary": "Webhook Response Message Submission Endpoint",
+        "description": "The Webhook Response Message Submission endpoint is the webhook endpoint used for sending response messages in reply to a previously submitted message. It provides the endpoint to which a server sends the response message, as created by the final recipient. Table 6 provides an overview of the HTTP Multipart body and fields defined and required for the implementation of this endpoint.",
+        "operationId": "WebhookResponseMessageSubmissionId",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Original-Sender"
+          },
+          {
+            "$ref": "#/components/parameters/Final-Recipient"
+          },
+          {
+            "$ref": "#/components/parameters/Timestamp"
+          },
+          {
+            "$ref": "#/components/parameters/Edel-Message-Sig"
+          },
+          {
+            "name": "messageId",
+            "in": "path",
+            "description": "The MessageId is the unique identifier of the message submitted. It MUST be defined by the client. It is used for reliable messaging for guaranteeing the at-most-once message submission (no duplicate message-ids are allowed by the server implementing the API).",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "dde12f67-c391-4851-8fa2-c07dd8532efd"
+          },
+          {
+            "name": "rMessageId",
+            "in": "path",
+            "description": "The identifier of the response message being submitted. It MUST be generated by the client submitting the response message.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "rService",
+            "in": "path",
+            "description": "The Service metadata defines the service under which the message should be sent. It is combined with the Action metadata to provide a complete domain-level message target. The service metadata MUST be a URL Safe string.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "rAction",
+            "in": "path",
+            "description": "The Action metadata defines the action of the service under which the message should be sent. It is combined with the Service metadata to provide a complete domain-level target of the message. The action metadata MUST be a URL Safe string.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/mixed": {
+              "schema": {
+                "$ref": "#/components/schemas/PayloadBody"
+              },
+              "encoding": {
+                "*": {
+                  "headers": {
+                    "Edel-Payload-Sig": {
+                      "$ref": "#/components/headers/Edel-Payload-Sig"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Sent when the message is properly validated and received.",
+            "headers": {
+              "Original-Sender": {
+                "$ref": "#/components/headers/Original-Sender"
+              },
+              "Final-Recipient": {
+                "$ref": "#/components/headers/Final-Recipient"
+              },
+              "Timestamp": {
+                "$ref": "#/components/headers/Timestamp"
+              },
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignalMessage"
+                },
+                "example": {
+                  "title": "Message Accepted",
+                  "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/message-accepted",
+                  "status": 202,
+                  "detail": "Sent when the message is properly validated. It may include a status monitor that can provide the user with an estimate of when the request will be fulfilled (see [RFC7231])",
+                  "instance": "/my-service/my-action/dde12f67-c391-4851-8fa2-c07dd8532efd",
+                  "digest": "sha-256=eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The server cannot or will not process the request due to an apparent client error (e.g., malformed request syntax, size too large, invalid request message framing, or deceptive request routing)",
+            "headers": {
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                },
+                "examples": {
+                  "ValidationFailed": {
+                    "value": {
+                      "title": "Validation Failed",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/message-validation-failed",
+                      "status": 400,
+                      "detail": "Sent when the message fails the validation process"
+                    }
+                  },
+                  "InvalidMessageId": {
+                    "value": {
+                      "title": "Invalid or Duplicate Message ID",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-message-id",
+                      "status": 400,
+                      "detail": "Sent when the MessageId is not valid"
+                    }
+                  },
+                  "InvalidSignature": {
+                    "value": {
+                      "title": "Invalid Message Signature",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-message-signature",
+                      "status": 400,
+                      "detail": "Sent when the message signature cannot be verified"
+                    }
+                  },
+                  "InvalidAddressing": {
+                    "value": {
+                      "title": "Invalid Addressing",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-addressing",
+                      "status": 400,
+                      "detail": "Sent when the Original Sender or Final Recipient(s) cannot be resolved"
+                    }
+                  },
+                  "InvalidMessageFormat": {
+                    "value": {
+                      "title": "Invalid Message Format",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-format",
+                      "status": 400,
+                      "detail": "Sent when the message format does not adhere to the specification"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/messaging-webhook/{messageId}/response/signal": {
+      "post": {
+        "tags": [
+          "Response Message Submission"
+        ],
+        "summary": "Webhook Signal Submission Endpoint Endpoint",
+        "description": "The Webhook Signal Submission endpoint is the webhook endpoint used for signalling the availability of a response message in reply to a previously submitted message. It provides the endpoint to which a server signals the availability of the response message. ",
+        "operationId": "WebhookSignalSubmissionId",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Original-Sender"
+          },
+          {
+            "$ref": "#/components/parameters/Final-Recipient"
+          },
+          {
+            "$ref": "#/components/parameters/Timestamp"
+          },
+          {
+            "$ref": "#/components/parameters/Edel-Message-Sig"
+          },
+          {
+            "name": "messageId",
+            "in": "path",
+            "description": "The MessageId is the unique identifier of the message submitted. It MUST be defined by the client. It is used for reliable messaging for guaranteeing the at-most-once message submission (no duplicate message-ids are allowed by the server implementing the API).",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "dde12f67-c391-4851-8fa2-c07dd8532efd"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignalMessage"
+              },
+              "example": {
+                "title": "Message Response is ready",
+                "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/message-ready",
+                "status": 201,
+                "detail": "An HTTP Request following [RFC7807] MUST be sent when a message response is ready to be retrieve",
+                "instance": "/my-service/my-action/dde12f67-c391-4851-8fa2-c07dd8532efd",
+                "digest": "sha-256=eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Sent when the message is properly validated and received.",
+            "headers": {
+              "Original-Sender": {
+                "$ref": "#/components/headers/Original-Sender"
+              },
+              "Final-Recipient": {
+                "$ref": "#/components/headers/Final-Recipient"
+              },
+              "Timestamp": {
+                "$ref": "#/components/headers/Timestamp"
+              },
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignalMessage"
+                },
+                "example": {
+                  "title": "Message Accepted",
+                  "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/message-accepted",
+                  "status": 202,
+                  "detail": "Sent when the message is properly validated. It may include a status monitor that can provide the user with an estimate of when the request will be fulfilled (see [RFC7231])",
+                  "instance": "/my-service/my-action/dde12f67-c391-4851-8fa2-c07dd8532efd",
+                  "digest": "sha-256=eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The server cannot or will not process the request due to an apparent client error (e.g., malformed request syntax, size too large, invalid request message framing, or deceptive request routing)",
+            "headers": {
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                },
+                "examples": {
+                  "ValidationFailed": {
+                    "value": {
+                      "title": "Validation Failed",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/message-validation-failed",
+                      "status": 400,
+                      "detail": "Sent when the message fails the validation process"
+                    }
+                  },
+                  "InvalidMessageId": {
+                    "value": {
+                      "title": "Invalid or Duplicate Message ID",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-message-id",
+                      "status": 400,
+                      "detail": "Sent when the MessageId is not valid"
+                    }
+                  },
+                  "InvalidSignature": {
+                    "value": {
+                      "title": "Invalid Message Signature",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-message-signature",
+                      "status": 400,
+                      "detail": "Sent when the message signature cannot be verified"
+                    }
+                  },
+                  "InvalidAddressing": {
+                    "value": {
+                      "title": "Invalid Addressing",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-addressing",
+                      "status": 400,
+                      "detail": "Sent when the Original Sender or Final Recipient(s) cannot be resolved"
+                    }
+                  },
+                  "InvalidMessageFormat": {
+                    "value": {
+                      "title": "Invalid Message Format",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/invalid-format",
+                      "status": 400,
+                      "detail": "Sent when the message format does not adhere to the specification"
+                    }
+                  },
+                  "NoRecipient": {
+                    "value": {
+                      "title": "No final recipient configured for the pulling user",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/pull/no-final-recipient",
+                      "status": 400,
+                      "detail": "Sent when the server cannot resolve/match the pulling user to a final recipient"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Similar to 403 Forbidden, but specifically for use when authentication is required and has failed or has not yet been provided. ",
+            "headers": {
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                },
+                "examples": {
+                  "Unauthorized": {
+                    "value": {
+                      "title": "Unauthorized",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/pull/unauthorized",
+                      "status": 401,
+                      "detail": "Sent when the pull request is unauthorized"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested resource could not be found but may be available in the future. Subsequent requests by the client are permissible.",
+            "headers": {
+              "Edel-Message-Sig": {
+                "$ref": "#/components/headers/Edel-Message-Sig"
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                },
+                "examples": {
+                  "NoMessage": {
+                    "value": {
+                      "title": "No Message Found",
+                      "type": "https://joinup.ec.europa.eu/collection/api4dt/solution/.../messaging/signal/pull/no-message-found",
+                      "status": 404,
+                      "detail": "Sent when no message is found that maps to the pull request"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

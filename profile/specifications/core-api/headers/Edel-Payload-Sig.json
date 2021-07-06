@@ -1,6 +1,5 @@
 {
   "name": "Edel-Payload-Sig",
-  "in": "header",
   "description": "The Edel-Payload-Sig carries the signature of a subpart of the Multipart message (see User Message section) following the API Core Profile on Payload Security.",
   "schema": {
     "$ref": "../schemas/jws-compact-detached.json"

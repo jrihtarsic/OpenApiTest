@@ -9,7 +9,7 @@
       "type": "array",
       "description": "List of message references.",
       "items": {
-        "$ref": "./core-api-message-ref.json"
+        "$ref": "./MessageReference.json"
       }
     },
     "count": {

@@ -1,7 +1,7 @@
 {
-  "name": "Original-Sender",
+  "name": "Edel-Payload-Sig",
   "in": "header",
-  "description": "The Original Sender represents the authenticated entity acting as the user that sends the message using the client. Following the API Core Profile, the original sender MUST be represented with an OpenID Connect token, in the form of Compact JWT Token.",
+  "description": "The Edel-Payload-Sig carries the signature of a subpart of the Multipart message (see User Message section) following the API Core Profile on Payload Security.",
   "schema": {
     "$ref": "https://raw.githubusercontent.com/jrihtarsic/OpenApiTest/main/profile/specifications/core-api/schemas/jws-compact-detached.json"
   },

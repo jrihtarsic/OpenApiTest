@@ -1,5 +1,5 @@
 {
-  "name": "MessageId",
+  "name": "messageId",
   "in": "path",
   "description": "The unique identifier of the message",
   "required": true,

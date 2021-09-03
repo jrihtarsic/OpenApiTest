@@ -4,7 +4,8 @@
   "description": "The unique identifier of the message",
   "required": true,
   "schema": {
-    "type": "string"
+    "type": "string",
+    "format": "uuid"
   },
   "example": "49bec0ff-bbe0-4600-8ea5-e488c53e86ab"
 }

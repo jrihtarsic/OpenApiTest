@@ -41,9 +41,9 @@ Status: 404<BR/>
 Type: https://raw.githubusercontent.com/isa2-api4ips/rest-api-profile/messaging-api-specification/predefined-signal.html#pull/no-message-found<BR/>
 Detail: Sent when no message is found that maps to the pull request<BR/>
 
-<h2 id="unauthorized">Unauthorized</h2>
+<h2 id="pull/unauthorized">Unauthorized</h2>
 Status: 401<BR/>
-Type: https://raw.githubusercontent.com/isa2-api4ips/rest-api-profile/messaging-api-specification/predefined-signal.html#pull/unauthorized<BR/>
+Type: https://github.com/jrihtarsic/OpenApiTest#pull/unauthorized <BR/>
 Detail: Sent when the pull request is unauthorized<BR/>
 
 <h2 id="message-ready">Message Response is ready</h2>

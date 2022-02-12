@@ -56,16 +56,3 @@ Status: 500<BR/>
 Type:https://raw.githubusercontent.com/isa2-api4ips/rest-api-profile/messaging-api-specification/predefined-signal.html#internal-server-error<BR/>
 Detail: The server encountered an unexpected condition that prevented it from fulfilling the request<BR/>
 
-```mermaid
-sequenceDiagram
-    autonumber
-    Alice->>John: Hello John, how are you?
-    loop Healthcheck
-        John->>John: Fight against hypochondria
-    end
-    Note right of John: Rational thoughts!
-    John-->>Alice: Great!
-    John->>Bob: How about you?
-    Bob-->>John: Jolly good!
-```
-
